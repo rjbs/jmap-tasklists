@@ -34,6 +34,7 @@ normative:
   RFC9562:
   RFC2397:
   RFC5545:
+  RFC8792:
   I-D.ietf-calext-jscalendarbis:
   I-D.ietf-jmap-calendars:
   IANA-TZDB:
@@ -96,13 +97,17 @@ Two features of JMAP for Calendars are deliberately *not* carried over:
 
 ## Notational Conventions
 
-**COPY**: Copy from JMAP for Calendars §1.1, unchanged: the BCP 14 {{RFC2119}}
-{{RFC8174}} boilerplate, and the note that type signatures, examples, and
-property descriptions follow {{Section 1.1 of RFC8620}}.
+{::boilerplate bcp14-tagged}
+
+Type signatures, examples, and property descriptions in this document follow
+the conventions established in {{Section 1.1 of RFC8620}}.
 
 ## Data Types
 
-**COPY**: Copy from JMAP for Calendars §1.2, unchanged.
+The Id data type defined in {{Section 1.2 of RFC8620}} is used in this
+document. So too are the UnsignedInt, UTCDateTime, LocalDateTime, Duration, and
+TimeZoneId data types defined in Sections 1.5.3, 1.5.4, 1.5.5, 1.5.6, and 1.5.8
+of {{I-D.ietf-calext-jscalendarbis}} respectively.
 
 ## Terminology
 
@@ -139,8 +144,19 @@ currently like to view the tasks in a subscribed task list.
 
 ### UIDs and Task Ids
 
-**COPY**: Copy from JMAP for Calendars §1.4.1, replacing CalendarEvent with
-Task throughout.
+Each Task has a "uid" property ({{Section 3.1.1 of
+I-D.ietf-calext-jscalendarbis}}), which is a globally unique identifier that
+identifies the same task in different Accounts, or different instances of the
+same recurring task within an Account.
+
+An Account MUST NOT contain more than one Task with the same uid unless all of
+the Task objects have distinct, non-null values for their "recurrenceId"
+property.
+
+Each Task also has an id, which is scoped to the JMAP Account and used for
+referencing it in JMAP methods. There is no necessary link between the uid and
+the Task's id. Tasks with the same uid in different Accounts may have different
+ids.
 
 ## Addition to the Capabilities Object
 
@@ -230,17 +246,38 @@ description: `String|null` (default: null)
 
 color: `String|null` (default: null)
 : A color to be used when displaying tasks associated with the task list.
-: **COPY**: Copy the two paragraphs constraining the value from JMAP for
-  Calendars §4 ("color"), unchanged: a CSS Color Module Level 3 {{COLORS}}
-  colour name or hex RGB value, with the {{WCAG}} contrast recommendation.
+
+  If not null, the value MUST be a case-insensitive color name taken from the
+  set of names defined in Section 4.3 of CSS Color Module Level 3 {{COLORS}},
+  or an RGB value in hexadecimal notation, as defined in Section 4.2.1 of CSS
+  Color Module Level 3.
+
+  The color SHOULD have sufficient contrast when used as text on a white
+  background, unless the user explicitly chooses otherwise. The Web Content
+  Accessibility Guidelines {{WCAG}} recommend at least a 4.5:1 contrast ratio
+  for readability.
 
 sortOrder: `UnsignedInt` (default: 0)
-: **COPY**: Copy from JMAP for Calendars §4 ("sortOrder"), replacing calendar
-  with task list throughout.
+: Defines the sort order of task lists when presented in the client's UI, so it
+  is consistent between devices. The number MUST be an integer in the range
+  0 <= sortOrder < 2^31.
+
+  A task list with a lower order is to be displayed before a task list with a
+  higher order in any list of task lists in the client's UI. Task lists with
+  equal order should be sorted in alphabetical order by name. The sorting
+  should take into account locale-specific character order convention.
 
 isSubscribed: `Boolean`
-: **COPY**: Copy from JMAP for Calendars §4 ("isSubscribed"), replacing
-  Calendar with TaskList throughout.
+: True if the user has indicated they wish to see this TaskList in their
+  client. This SHOULD default to false for TaskLists in shared accounts the
+  user has access to and true for any new TaskLists created by the user
+  themself.
+
+  If false, the task list SHOULD only be displayed when the user explicitly
+  requests it or to offer it for the user to subscribe to. For example, a
+  company may have a large number of shared task lists which all employees have
+  permission to access, but the user would only subscribe to the ones they care
+  about and want to be able to have normally accessible.
 
 isVisible: `Boolean` (default: true)
 : If true, the task list's tasks should be displayed to the user. If false, the
@@ -257,12 +294,30 @@ isDefault: `Boolean` (server-set)
   to make a choice.
 
 defaultAlertsWithTime: `Id[Alert]|null`
-: **COPY**: Copy from JMAP for Calendars §4 ("defaultAlertsWithTime"),
-  replacing event with task and calendar with task list throughout.
+: A map of alert ids to Alert objects (see {{Section 3.5.1 of
+  I-D.ietf-calext-jscalendarbis}}) to apply for tasks where "showWithoutTime"
+  is false and "useDefaultAlerts" is true. Ids MUST be unique across all
+  default alerts in the account, including those in other task lists; a UUID
+  {{RFC9562}} is recommended. The "trigger" MUST NOT be an AbsoluteTrigger, as
+  this would fire for every task at the same time and so does not make sense
+  for a default alert.
+
+  If omitted on creation, the default is server dependent. For example, servers
+  may choose to always default to null, or may copy the alerts from the default
+  task list.
 
 defaultAlertsWithoutTime: `Id[Alert]|null`
-: **COPY**: Copy from JMAP for Calendars §4 ("defaultAlertsWithoutTime"),
-  replacing event with task and calendar with task list throughout.
+: A map of alert ids to Alert objects (see {{Section 3.5.1 of
+  I-D.ietf-calext-jscalendarbis}}) to apply for tasks where "showWithoutTime"
+  is true (that is, tasks shown without a time of day) and "useDefaultAlerts"
+  is true. Ids MUST be unique across all default alerts in the account,
+  including those in other task lists; a UUID {{RFC9562}} is recommended. The
+  "trigger" MUST NOT be an AbsoluteTrigger, as this would fire for every task
+  at the same time and so does not make sense for a default alert.
+
+  If omitted on creation, the default is server dependent. For example, servers
+  may choose to always default to null, or may copy the alerts from the default
+  task list.
 
 timeZone: `TimeZoneId|null` (default: null)
 : The time zone to use for tasks without a time zone when the server needs to
@@ -271,8 +326,16 @@ timeZone: `TimeZoneId|null` (default: null)
   of the account's associated Principal will be used.
 
 shareWith: `Id[TaskListRights]|null` (default: null)
-: **COPY**: Copy from JMAP for Calendars §4 ("shareWith"), replacing calendar
-  with task list and CalendarRights with TaskListRights throughout.
+: This is a map configuring who the task list is shared with, or null if it is
+  not shared with anyone. Each key in the map is the id of a Principal with
+  whom the task list is shared. The value for each key is the set of access
+  rights that Principal has for the task list. The account id for the
+  Principals may be found in the urn:ietf:params:jmap:principals:owner
+  capability of the Account to which the task list belongs.
+
+  The Principal to which this task list belongs MUST NOT be in the map.
+
+  The property may only be modified if the user has the mayShare right.
 
 myRights: `TaskListRights` (server-set)
 : The set of access rights the user has in relation to this TaskList. If any
@@ -302,7 +365,8 @@ mayUpdatePrivate: `Boolean`
   the task list, even if they would not otherwise have permission to modify
   that task. These properties MUST all be stored per-user, and changes do not
   affect any other user of the task list.
-: The user may also modify these properties on a per-occurrence basis for
+
+  The user may also modify these properties on a per-occurrence basis for
   recurring tasks (updating the "recurrenceOverrides" property of the task to
   do so).
 
@@ -345,8 +409,18 @@ onDestroyRemoveTasks: `Boolean` (default: false)
   shared with, to inform them they no longer have access to the task list.
 
 onSuccessSetIsDefault: `Id|null`
-: **COPY**: Copy from JMAP for Calendars §4.3 ("onSuccessSetIsDefault"),
-  replacing calendar with task list throughout.
+: If an id is given, and all creates, updates and destroys (if any) succeed
+  without error, the server will try to set this task list as the default. (For
+  references to TaskList creations, this is equivalent to a creation-reference,
+  so the id will be the creation id prefixed with a "#".)
+
+  If the id is not found, or the change is not permitted by the server for
+  policy reasons, it MUST be ignored and the currently default task list (if
+  any) will remain as such. No error is returned to the client in this case.
+
+  As per {{Section 5.3 of RFC8620}}, if the default is successfully changed,
+  any changed objects MUST be reported in either the "created" or "updated"
+  argument in the response as appropriate, with the server-set value included.
 {: newline="true"}
 
 The "shareWith" property may only be set by users that have the mayShare right.
@@ -428,11 +502,16 @@ I-D.ietf-calext-jscalendarbis}}) record an individual contributor's progress.
 
 ## Attachments
 
-**COPY**: Copy from JMAP for Calendars §5.3, replacing event with task
-throughout: a Link with "rel" of "enclosure" may carry a "blobId" in place of
-an "href", the server translating it to a data: URL {{RFC2397}} for systems
-that cannot reach the blob, and exposing it as a managed attachment
-{{RFC8607}} to CalDAV clients.
+The Link object, as defined in {{Section 1.5.11 of
+I-D.ietf-calext-jscalendarbis}}, with a "rel" property equal to "enclosure" is
+used to represent attachments. Instead of mandating an "href" property, clients
+may set a "blobId" property instead to reference a blob of binary data in the
+account, as per {{Section 6 of RFC8620}}.
+
+The server MUST translate this to an embedded data: URL {{RFC2397}} when
+sending the task to a system that cannot access the blob. Servers that support
+CalDAV access to the same data are recommended to expose these files as managed
+attachments {{RFC8607}}.
 
 ## Per-user properties {#per-user}
 
@@ -462,9 +541,15 @@ instances. Per {{Section 4.2.2 of I-D.ietf-calext-jscalendarbis}}, a task with
 a "recurrenceRule" or "recurrenceId" property MUST have a "start" property, so
 every instance of a recurring task has a definite start.
 
-**COPY**: Copy the remainder of JMAP for Calendars §5.5, replacing event with
-task throughout, and omitting the final paragraph about being invited to
-specific instances.
+The data store will contain a single base task, containing a recurrence rule
+and/or recurrence overrides.
+
+The client may ask the server to expand recurrences within a specific time
+range in "Task/query". This will generate synthetic ids representing individual
+instances in the requested time range. The client can fetch and update the
+objects using these ids and the server will make the appropriate changes to the
+base task. Synthetic ids do not appear in "Task/changes" responses; only the
+ids of tasks as actually stored on the server.
 
 ## Task/get
 
@@ -576,9 +661,139 @@ invalidProperties SetError.
 
 ### Patching
 
-**COPY**: Copy from JMAP for Calendars §5.9.1, replacing CalendarEvent with
-Task throughout. The worked example may be reused with a task in place of the
-meeting.
+The JMAP "/set" method allows you to update an object by sending a patch,
+rather than having to supply the whole object. When doing so, care must be
+taken if updating a property of a Task where the value is itself a PatchObject,
+e.g. inside "localizations" or "recurrenceOverrides". In particular, you cannot
+add a property with value null to the Task using a direct patch on that
+property, as this is interpreted instead as a patch to remove the property.
+
+This is more easily understood with an example. Some of the requests below are
+too wide to print, and use the single backslash line-wrapping convention of
+{{RFC8792}}. Suppose you have a Task object like so:
+
+~~~
+{
+  "id": "42",
+  "@type": "Task",
+  "title": "Water the plants",
+  "start": "2026-08-03T09:00:00",
+  "timeZone": "Australia/Melbourne",
+  "recurrenceRule": {
+    "@type": "RecurrenceRule",
+    "frequency": "weekly"
+  },
+  "alerts": {
+    "5c1b": {
+      "@type": "Alert",
+      "trigger": {
+        "@type": "OffsetTrigger",
+        "offset": "-PT30M",
+        "relativeTo": "start"
+      }
+    },
+    "9f3a": {
+      "@type": "Alert",
+      "action": "email",
+      "trigger": {
+        "@type": "OffsetTrigger",
+        "offset": "PT0S",
+        "relativeTo": "start"
+      }
+    }
+  },
+  "recurrenceOverrides": {
+    "2026-08-31T09:00:00": {
+      "title": "Water the plants (and repot the ficus)"
+    }
+  }
+}
+~~~
+{: title="A Task object"}
+
+The plants are watered weekly, and on the 31st of August there is extra work to
+do, so that occurrence has an overridden title. If you also wanted to give that
+one occurrence a longer estimated duration, you could update the task by just
+sending a patch like so:
+
+~~~
+[[ "Task/set", {
+  "accountId": "a0x9",
+  "update": {
+    "42": {
+      "recurrenceOverrides/2026-08-31T09:00:00/\
+        estimatedDuration": "PT1H"
+    }
+  }
+}, "0" ]]
+~~~
+{: title="\"methodCalls\" Property of a JMAP Request. NOTE: '\' line wrapping per RFC 8792."}
+
+This patches the "2026-08-31T09:00:00" PatchObject in recurrenceOverrides so
+that it ends up like this:
+
+~~~
+"recurrenceOverrides": {
+  "2026-08-31T09:00:00": {
+    "title": "Water the plants (and repot the ficus)",
+    "estimatedDuration": "PT1H"
+  }
+}
+~~~
+{: title="\"recurrenceOverrides\" Property in a Task Object"}
+
+Now if you changed your mind and wanted that occurrence to go back to the
+task's normal estimated duration, you would remove the patch from the overrides
+like so:
+
+~~~
+[[ "Task/set", {
+  "accountId": "a0x9",
+  "update": {
+    "42": {
+      "recurrenceOverrides/2026-08-31T09:00:00/\
+        estimatedDuration": null
+    }
+  }
+}, "0" ]]
+~~~
+{: title="\"methodCalls\" Property of a JMAP Request. NOTE: '\' line wrapping per RFC 8792."}
+
+However, if you instead want to suppress the email alert for that one
+occurrence, you could not send this patch:
+
+~~~
+[[ "Task/set", {
+  "accountId": "a0x9",
+  "update": {
+    "42": {
+      "recurrenceOverrides/2026-08-31T09:00:00/alerts~19f3a": null
+    }
+  }
+}, "0" ]]
+~~~
+{: title="\"methodCalls\" Property of a JMAP Request"}
+
+This would mean removing the "alerts/9f3a" property at path
+"recurrenceOverrides" -> "2026-08-31T09:00:00" inside the object; but this
+doesn't exist. We actually want to add this property and make it map to null.
+The client must instead send the full object that contains the property mapping
+to null, like so:
+
+~~~
+[[ "Task/set", {
+  "accountId": "a0x9",
+  "update": {
+    "42": {
+      "recurrenceOverrides/2026-08-31T09:00:00": {
+        "title": "Water the plants (and repot the ficus)",
+        "alerts/9f3a": null
+      }
+    }
+  }
+}, "0" ]]
+~~~
+{: title="\"methodCalls\" Property of a JMAP Request"}
 
 ## Task/copy
 
@@ -599,9 +814,25 @@ timeZone: `TimeZoneId`
 : The time zone for before/after filter conditions (default: "Etc/UTC")
 {: newline="true"}
 
-**COPY**: Copy the remaining four paragraphs of JMAP for Calendars §5.11
-(synthetic ids, and the expandDurationTooLarge and cannotCalculateOccurrences
-errors), replacing event with task throughout.
+If expandRecurrences is true, a separate id will be returned for each instance
+of a recurring task that matches the query. This synthetic id is opaque to the
+client, but uniquely identifies the base task id + recurrence id within the
+account, allowing the server to resolve these for "/get" and "/set" operations.
+Otherwise, a single id will be returned for matching recurring tasks that
+represents the entire task.
+
+There is no necessary correspondence between the ids of different instances of
+the same expanded task.
+
+The following additional errors may be returned instead of the "Task/query"
+response:
+
+expandDurationTooLarge: The query has expandRecurrences set to true, and the
+duration between the "before" and "after" properties exceeds the
+maxExpandedQueryDuration limit (as found in the account capabilities).
+
+cannotCalculateOccurrences: The server cannot expand a recurrence required to
+return the results for this query.
 
 ### Filtering
 
@@ -651,9 +882,25 @@ instance of a recurring task for the instance to match. If expandRecurrences is
 false, all conditions must match, but they may each match any instance of the
 task.
 
-**COPY**: Copy the final three paragraphs of JMAP for Calendars §5.11.1 (the
-zero/multiple property rule and the text matching semantics), replacing event
-with task throughout.
+If zero properties are specified on the FilterCondition, the condition MUST
+always evaluate to true. If multiple properties are specified, ALL must apply
+for the condition to be true (it is equivalent to splitting the object into
+one-property conditions and making them all the child of an AND filter
+operator).
+
+The exact semantics for matching String fields is *deliberately not defined* to
+allow for flexibility in indexing implementation, subject to the following:
+
+* Text should be matched in a case-insensitive manner.
+* Text contained in either (but matched) single or double quotes should be
+  treated as a *phrase search*, that is a match is required for that exact
+  sequence of words, excluding the surrounding quotation marks. Use \", \' and
+  \\ to match a literal ", ' and \ respectively in a phrase.
+* Outside of a phrase, white-space should be treated as dividing separate
+  tokens that may be searched for separately in the task, but must all be
+  present for the task to match the filter.
+* Tokens may be matched on a whole-word basis using stemming (so for example a
+  text search for bus would match "buses" but not "business").
 
 ### Sorting
 
@@ -697,8 +944,40 @@ requested:
 * baseTaskId
 * taskListIds
 
-**COPY**: Copy the arguments, response arguments, and closing paragraph of JMAP
-for Calendars §5.13, replacing CalendarEvent with Task throughout.
+The "Task/parse" method takes the following arguments:
+
+accountId: `Id`
+: The id of the account to use.
+
+blobIds: `Id[]`
+: The ids of the blobs to parse.
+
+properties: `String[]`
+: If supplied, only the properties listed in the array are returned for each
+  Task object. If omitted, defaults to all the properties.
+{: newline="true"}
+
+The response object contains the following arguments:
+
+accountId: `Id`
+: The id of the account used for the call.
+
+parsed: `Id[Task[]]|null`
+: A map of blob ids to parsed Task object representations for each successfully
+  parsed blob, or null if none.
+
+notFound: `Id[]|null`
+: A list of blob ids given that could not be found, or null if none.
+
+notParsable: `Id[]|null`
+: A list of blob ids given that corresponded to blobs that could not be parsed
+  as Tasks, or null if none.
+{: newline="true"}
+
+Parsed iCalendars are to be converted into Task objects following the process
+defined in the JSCalendar: Converting from and to iCalendar
+(https://datatracker.ietf.org/doc/draft-ietf-calext-jscalendar-icalendar)
+document.
 
 # Alerts
 
@@ -717,23 +996,64 @@ be alerted on by an AbsoluteTrigger.)
 Servers SHOULD NOT trigger an alert for a task whose progress is "completed" or
 "cancelled".
 
-**COPY**: Copy the final two paragraphs of JMAP for Calendars §6 (email and
-display actions), replacing event with task throughout.
+When an alert with an "email" action is triggered, the server MUST send an
+email to the user to notify them of the task. The content of the email is
+implementation specific. Clients MUST NOT perform an action for these alerts.
+
+When an alert with a "display" action is triggered, clients should display an
+alert in a platform-appropriate manner to the user to remind them of the task.
+Clients with a full offline cache of tasks may choose to calculate when alerts
+should trigger locally. Alternatively, they can subscribe to push events from
+the server.
 
 ## Default alerts {#default-alerts}
 
-**COPY**: Copy from JMAP for Calendars §6.1, replacing event with task and
-Calendar with TaskList throughout.
+If the "useDefaultAlerts" property of a task is true, the alerts are taken from
+the "defaultAlertsWithTime" or "defaultAlertsWithoutTime" property of all
+TaskLists (see {{tasklists}}) the task is in, rather than the "alerts" property
+of the Task.
 
-## Acknowledging an alert
+When using default alerts, the "alerts" property of the task is ignored except
+for the following:
 
-**COPY**: Copy from JMAP for Calendars §6.2, replacing CalendarEvent with Task
-throughout.
+* The "acknowledged" time for an alert is stored here when a default alert for
+  the task is dismissed. The id of the alert MUST be the same as the id of the
+  default alert in the task list. See {{acknowledging}} on acknowledging
+  alerts.
+* If an alert has a "relatedTo" property where the parent is the id of one of
+  the task list default alerts, it is processed as normal and not ignored. This
+  is to support snoozing default alerts; see {{snoozing}}.
 
-## Snoozing an alert
+## Acknowledging an alert {#acknowledging}
 
-**COPY**: Copy from JMAP for Calendars §6.3, replacing event with task
-throughout.
+To dismiss an alert, clients set the "acknowledged" property of the Alert
+object to the current date-time. If the alert was a task list default, it may
+need to be added to the task at this point in order to acknowledge it. When
+other clients fetch the updated Task they SHOULD automatically dismiss or
+suppress duplicate alerts (alerts with the same alert id that triggered on or
+before the "acknowledged" date-time) and alerts that have been removed from the
+task.
+
+Setting the "acknowledged" property MUST NOT create a new recurrence override.
+For a recurring task, the "acknowledged" property of the parent object MUST be
+updated, unless the alert is already overridden in the "recurrenceOverrides"
+property.
+
+## Snoozing an alert {#snoozing}
+
+Users may wish to dismiss an alert temporarily and have it come back after a
+specific period of time. To do this, clients MUST:
+
+1. Acknowledge the alert as described in {{acknowledging}}.
+2. Add a new alert to the task that has an AbsoluteTrigger specifying the
+   date-time when the alert will trigger again. Add a "relatedTo" property to
+   the new alert, setting the "snooze" relation to point to the original alert.
+   This MUST NOT create a new recurrence override; it is added to the same
+   "alerts" property that contains the alert that was acknowledged in step 1.
+
+When acknowledging a snoozed alert (i.e. one with a "snooze" relatedTo pointing
+to the original alert), the client should delete the alert rather than setting
+the "acknowledged" property.
 
 ## Push events
 
@@ -784,9 +1104,17 @@ The server should create a TaskNotification whenever a task is added, updated
 or destroyed by someone else, for example when a task is edited directly by
 another user on a shared task list.
 
-**COPY**: Copy the three paragraphs of JMAP for Calendars §7 covering per-user
-data, storage limits, and coalescing, replacing CalendarEventNotification with
-TaskNotification throughout.
+The TaskNotification does not have any per-user data. A single instance may
+therefore be maintained on the server for all users with whom the task list is
+shared. The server need only keep track of which users have yet to destroy the
+notification.
+
+The server MAY limit the maximum number of notifications it will store for a
+user. When the limit is reached, any new notification will cause the previously
+oldest notification to be automatically deleted.
+
+The server MAY coalesce notifications if appropriate or remove notifications
+after a certain period of time or that it deems are no longer relevant.
 
 A *TaskNotification* object has the following properties:
 
@@ -1056,10 +1384,37 @@ I-D.ietf-calext-jscalendarbis}}) MUST also be enforced.
 
 ## Denial-of-service
 
-**COPY**: Copy from JMAP for Calendars §9.3, §9.3.1 (Expanding Recurrences) and
-§9.3.2 (Firing alerts), replacing event with task throughout. §9.3.3 (Load
-spikes) does not apply in the same way, as tasks are not concentrated on the
-hour mark to the degree events are, but servers may still wish to add jitter.
+There are many ways in which a user can make a request liable to cause a server
+to spend an inordinate amount of processing time. Care must be taken to limit
+resources allocated to any one user to ensure the system does not become
+unresponsive. The following subsections list particularly hazardous areas.
+
+### Expanding recurrences
+
+Recurrence rules can be crafted to occur as frequently as every second. Servers
+MUST be careful to not allow resources to be exhausted when expanding, and
+limit the number of expansions they will create. Equally, rules can be
+generated that never create any occurrences at all. Servers MUST be careful to
+limit the work spent iterating in search of the next occurrence.
+
+### Firing alerts
+
+An alert firing for a task can cause a notification to be pushed to the user's
+devices, or to send them an email. Servers MUST rate limit the number of alerts
+sent for any one user. The combination of recurring tasks with multiple alerts
+can in particular define unreasonably frequent alerts, leading to denial of
+service for either the server processing them or the user's devices receiving
+them.
+
+Similarly, clients generating alerts from the data on device must take the same
+precautions.
+
+The "email" alert type (see {{Section 3.5.1 of
+I-D.ietf-calext-jscalendarbis}}) causes an email to be sent when triggered.
+Clients MUST ignore this alert type; the email is sent only by the server.
+There is no mechanism in JSCalendar to specify a particular email address: the
+server MUST only allow alerts to be sent to an address it has verified as
+belonging to the user to avoid this being used as a spamming vector.
 
 ## Spam
 
