@@ -1,0 +1,78 @@
+name: Build and publish
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  DRAFT: draft-signes-jmap-tasklists-00
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: docker
+          load: true
+          tags: jmap-tasklists-tools
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build HTML
+        run: make html && sudo chmod -R a+w build
+
+      - name: Inject commit banner
+        env:
+          SHA: ${{ github.sha }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          python3 - <<'EOF'
+          import os, re
+          sha      = os.environ["SHA"]
+          repo_url = os.environ["REPO_URL"]
+          draft    = os.environ["DRAFT"]
+          short    = sha[:7]
+          url      = f"{repo_url}/commit/{sha}"
+          banner   = (
+              f'<div style="background:#fbebeb;padding:6px 12px;font-size:medium;border-bottom:1px solid #ccc">'
+              f'\U000026A0\uFE0F This is just a draft of a draft, built from commit <a href="{url}">{short}</a>'
+              f'</div>'
+          )
+          src  = f"build/{draft}.html"
+          html = open(src).read()
+          html = re.sub(r"(<body[^>]*>)", r"\1" + banner, html, count=1)
+          open(src, "w").write(html)
+          open("build/index.html", "w").write(html)
+          EOF
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
