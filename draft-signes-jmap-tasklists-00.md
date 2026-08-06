@@ -32,7 +32,6 @@ normative:
   RFC8620:
   RFC9670:
   RFC9562:
-  RFC3986:
   RFC2397:
   RFC5545:
   I-D.ietf-calext-jscalendarbis:
@@ -52,8 +51,6 @@ informative:
   RFC4791:
   RFC5546:
   RFC8607:
-  RFC8984:
-  I-D.ietf-calext-ical-tasks:
   WCAG:
     target: https://www.w3.org/TR/WCAG21/
     title: Web Content Accessibility Guidelines
@@ -99,7 +96,9 @@ Two features of JMAP for Calendars are deliberately *not* carried over:
 
 ## Notational Conventions
 
-**COPY**: Copy from JMAP for Calendars §1.1, unchanged.
+**COPY**: Copy from JMAP for Calendars §1.1, unchanged: the BCP 14 {{RFC2119}}
+{{RFC8174}} boilerplate, and the note that type signatures, examples, and
+property descriptions follow {{Section 1.1 of RFC8620}}.
 
 ## Data Types
 
@@ -178,6 +177,7 @@ maxExpandedQueryDuration: `Duration`
 
 mayCreateTaskList: `Boolean`
 : If true, the user may create a task list in this account.
+{: newline="true"}
 
 ### urn:ietf:params:jmap:tasks:parse {#capability-tasks-parse}
 
@@ -208,6 +208,7 @@ accountId: `Id|null`
 mayShareWith: `Boolean`
 : If true, the user may add this Principal as a task list share target (by
   adding them to the "shareWith" property of a task list, see {{tasklists}}).
+{: newline="true"}
 
 # Task Lists {#tasklists}
 
@@ -230,7 +231,8 @@ description: `String|null` (default: null)
 color: `String|null` (default: null)
 : A color to be used when displaying tasks associated with the task list.
 : **COPY**: Copy the two paragraphs constraining the value from JMAP for
-  Calendars §4 ("color"), unchanged.
+  Calendars §4 ("color"), unchanged: a CSS Color Module Level 3 {{COLORS}}
+  colour name or hex RGB value, with the {{WCAG}} contrast recommendation.
 
 sortOrder: `UnsignedInt` (default: 0)
 : **COPY**: Copy from JMAP for Calendars §4 ("sortOrder"), replacing calendar
@@ -283,6 +285,7 @@ myRights: `TaskListRights` (server-set)
     task list.
   * The user may make other changes to the task if they have the right to do so
     in *all* task lists to which the task belongs.
+{: newline="true"}
 
 A *TaskListRights* object has the following properties:
 
@@ -308,6 +311,7 @@ mayShare: `Boolean`
 
 mayDelete: `Boolean`
 : The user may delete the task list itself.
+{: newline="true"}
 
 Note that JMAP for Calendars defines two further rights, "mayWriteOwn" and
 "mayRSVP", both of which depend on identifying the user among an object's
@@ -343,6 +347,7 @@ onDestroyRemoveTasks: `Boolean` (default: false)
 onSuccessSetIsDefault: `Id|null`
 : **COPY**: Copy from JMAP for Calendars §4.3 ("onSuccessSetIsDefault"),
   replacing calendar with task list throughout.
+{: newline="true"}
 
 The "shareWith" property may only be set by users that have the mayShare right.
 When modifying the "shareWith" property, the user cannot give a right to a
@@ -383,6 +388,7 @@ For "destroy":
 taskListHasTask
 : The TaskList has at least one Task assigned to it, and the
   "onDestroyRemoveTasks" argument was false.
+{: newline="true"}
 
 # Tasks {#tasks}
 
@@ -409,6 +415,7 @@ taskListIds: `Id[Boolean]`
 useDefaultAlerts: `Boolean` (optional, default: false)
 : If true, use the user's default alerts and ignore the value of the alerts
   property (see {{default-alerts}}).
+{: newline="true"}
 
 Task objects MUST NOT have a "method" property, as this is only used when
 representing iTIP {{RFC5546}} scheduling messages, not tasks in a data store.
@@ -422,7 +429,10 @@ I-D.ietf-calext-jscalendarbis}}) record an individual contributor's progress.
 ## Attachments
 
 **COPY**: Copy from JMAP for Calendars §5.3, replacing event with task
-throughout.
+throughout: a Link with "rel" of "enclosure" may carry a "blobId" in place of
+an "href", the server translating it to a data: URL {{RFC2397}} for systems
+that cannot reach the blob, and exposing it as a managed attachment
+{{RFC8607}} to CalDAV clients.
 
 ## Per-user properties {#per-user}
 
@@ -468,6 +478,7 @@ recurrenceOverridesBefore: `UTCDateTime|null`
 recurrenceOverridesAfter: `UTCDateTime|null`
 : If given, only recurrence overrides with a recurrence id on or after this
   date (when translated into UTC) will be returned.
+{: newline="true"}
 
 A Task object is a JSCalendar Task object so may have arbitrary properties. If
 the client makes a "Task/get" call with a null or omitted "properties"
@@ -586,6 +597,7 @@ expandRecurrences: `Boolean` (default: false)
 
 timeZone: `TimeZoneId`
 : The time zone for before/after filter conditions (default: "Etc/UTC")
+{: newline="true"}
 
 **COPY**: Copy the remaining four paragraphs of JMAP for Calendars §5.11
 (synthetic ids, and the expandDurationTooLarge and cannotCalculateOccurrences
@@ -632,6 +644,7 @@ description: `String`
 
 uid: `String`
 : The uid of the task is exactly the given string.
+{: newline="true"}
 
 If expandRecurrences is true, all conditions must match against the same
 instance of a recurring task for the instance to match. If expandRecurrences is
@@ -753,6 +766,7 @@ recurrenceId: `LocalDateTime|null`
 
 alertId: `String`
 : The id for the alert that triggered.
+{: newline="true"}
 
 # Task Notifications
 
@@ -795,6 +809,7 @@ changedBy: `Person`
   principalId: `Id|null`
   : The id of the Principal corresponding to the person who made the change, if
     any.
+  {: newline="true"}
 
 type: `String`
 : This MUST be one of:
@@ -813,6 +828,7 @@ task: `JSCalendar Task`
 taskPatch: `PatchObject` (updated only)
 : A patch encoding the change between the data in the task property, and the
   data after the update.
+{: newline="true"}
 
 If the change only affects a single instance of a recurring task, the server MAY
 set the task and taskPatch properties for just that instance; the taskId MUST
@@ -854,6 +870,7 @@ type: `String`
 taskIds: `Id[]|null`
 : A list of task ids. The "taskId" property of the notification must be in this
   list to match the condition.
+{: newline="true"}
 
 ### Sorting
 
