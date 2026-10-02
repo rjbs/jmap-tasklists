@@ -34,6 +34,7 @@ normative:
   RFC5545:
   RFC8792:
   I-D.ietf-calext-jscalendarbis:
+  I-D.ietf-calext-jscalendar-icalendar:
   I-D.ietf-jmap-calendars:
   IANA-TZDB:
     target: https://www.iana.org/time-zones
@@ -140,7 +141,7 @@ indicates the user wants this task list to appear in their regular list of task
 lists. The separate "isVisible" property stores whether the user would
 currently like to view the tasks in a subscribed task list.
 
-### UIDs and Task Ids
+### UIDs and Task Ids {#uids-and-task-ids}
 
 Each Task has a "uid" property ({{Section 3.1.1 of
 I-D.ietf-calext-jscalendarbis}}), which is a globally unique identifier that
@@ -150,6 +151,11 @@ same recurring task within an Account.
 An Account MUST NOT contain more than one Task with the same uid unless all of
 the Task objects have distinct, non-null values for their "recurrenceId"
 property.
+
+Where an Account does contain multiple Task objects with the same uid, they
+MUST NOT have different values for their "privacy" property (see
+{{Section 3.4.3 of I-D.ietf-calext-jscalendarbis}}). See {{taskset}} for how
+the server enforces this.
 
 Each Task also has an id, which is scoped to the JMAP Account and used for
 referencing it in JMAP methods. There is no necessary link between the uid and
@@ -285,8 +291,8 @@ isVisible: `Boolean` (default: true)
   those task lists.
 
 isDefault: `Boolean` (server-set)
-: This SHOULD be true for exactly one task list in any account, and MUST NOT be
-  true for more than one task list within an account. The default task list
+: This MUST NOT be true for more than one task list within an account, and
+  SHOULD be true for one of them if the account contains any. The default task list
   should be used by clients whenever they need to choose a task list for the
   user within this account, and they do not have any other information on which
   to make a choice.
@@ -321,7 +327,8 @@ timeZone: `TimeZoneId|null` (default: null)
 : The time zone to use for tasks without a time zone when the server needs to
   resolve them into absolute time, e.g. for alerts. The value MUST be a time
   zone id from the IANA Time Zone Database {{IANA-TZDB}}. If null, the timeZone
-  of the account's associated Principal will be used.
+  of the account's associated Principal will be used; if the account has no
+  associated Principal, a server-configured default time zone is used.
 
 shareWith: `Id[TaskListRights]|null` (default: null)
 : This is a map configuring who the task list is shared with, or null if it is
@@ -489,8 +496,11 @@ useDefaultAlerts: `Boolean` (optional, default: false)
   property (see {{default-alerts}}).
 {: newline="true"}
 
-Task objects MUST NOT have a "method" property, as this is only used when
-representing iTIP {{RFC5546}} scheduling messages, not tasks in a data store.
+Task objects stored on the server MUST NOT have a "method" property, as this
+is only used when representing iTIP {{RFC5546}} scheduling messages, not tasks
+in a data store. This restriction does not apply to Task objects returned by
+"Task/parse" (see {{task-parse}}), which represent the contents of an iCalendar
+file rather than stored tasks.
 
 The JSCalendar "progress" and "percentComplete" properties are properties of
 the task itself, not of the user viewing it. In a shared task list, a change to
@@ -514,7 +524,8 @@ attachments {{RFC8607}}.
 ## Per-user properties {#per-user}
 
 In shared task lists, any top-level property registered in the IANA registry as
-"Is Per-User: yes" (see {{Section 10.8 of I-D.ietf-jmap-calendars}}) MUST be
+"Is Per-User" set to "Yes" in the IANA "JSCalendar Properties" registry (see
+{{Section 7.4 of I-D.ietf-calext-jscalendarbis}}) MUST be
 stored per-user. For Tasks this includes:
 
 * keywords
@@ -549,7 +560,7 @@ objects using these ids and the server will make the appropriate changes to the
 base task. Synthetic ids do not appear in "Task/changes" responses; only the
 ids of tasks as actually stored on the server.
 
-## Task/get
+## Task/get {#taskget}
 
 This is a standard "/get" method as described in {{Section 5.1 of RFC8620}},
 with two extra arguments:
@@ -566,9 +577,10 @@ recurrenceOverridesAfter: `UTCDateTime|null`
 A Task object is a JSCalendar Task object so may have arbitrary properties. If
 the client makes a "Task/get" call with a null or omitted "properties"
 argument, all properties that are defined on the JSCalendar Task object in the
-store are returned except for "iCalendar". In addition, the "id" and
-"taskListIds" properties MUST be included on each object. The "iCalendar"
-property is only returned if explicitly requested.
+store are returned except for "iCalendar" (see
+{{I-D.ietf-calext-jscalendar-icalendar}}). In addition, the "id",
+"taskListIds", and "useDefaultAlerts" properties MUST be included on each
+object. The "iCalendar" property is only returned if explicitly requested.
 
 A requested id may represent a server-expanded single instance of a recurring
 task if the client asked the server to expand recurrences in "Task/query". In
@@ -599,7 +611,7 @@ Synthetic ids generated by the server expanding recurrences in "Task/query" do
 not appear in "Task/changes" responses; only the ids of tasks as actually
 stored on the server.
 
-## Task/set
+## Task/set {#taskset}
 
 This is a standard "/set" method as described in {{Section 5.3 of RFC8620}}.
 
@@ -633,6 +645,17 @@ Principal that owns the task list.
 The "privacy" property MUST NOT be set to anything other than "public" (the
 default) for tasks in a task list that does not belong to the user. The server
 MUST reject this with an invalidProperties SetError.
+
+As specified in {{uids-and-task-ids}}, all Task objects with the same uid in an
+Account MUST have the same value for their "privacy" property. After applying
+all the creates, updates, and destroys in the "/set" request, if the Account
+would contain two or more Task objects with the same uid but different values
+for their "privacy" property, the server MUST reject each create or update in
+the request that affects a Task with that uid with an invalidProperties
+SetError. Changes in the request to Task objects with other uids are
+unaffected. Note that a client wishing to change the privacy of a task that
+exists as multiple instances in the Account must therefore update every
+instance in the same "/set" request.
 
 If omitted on create, the server MUST set the following properties:
 
@@ -797,6 +820,23 @@ to null, like so:
 
 This is a standard "/copy" method as described in {{Section 5.4 of RFC8620}}.
 
+As specified in {{taskset}}, the "privacy" property MUST NOT be set to anything
+other than "public" (the default) for tasks in a task list that does not belong
+to the user. If the account being copied into does not belong to the user and
+the "privacy" property of the task to be created would be anything other than
+"public" (whether inherited from the task being copied or set explicitly in the
+"create" patch), the server MUST reject the copy with an invalidProperties
+SetError.
+
+A user with whom a task list is shared does not have access to the full data of
+a task with its "privacy" property set to "private" (see {{taskget}}), so
+cannot copy such a task. If the account being copied from does not belong to
+the user and the "privacy" property of the task being copied is "private", the
+server MUST reject the copy with a forbidden SetError. (A task with "privacy"
+set to "secret" does not exist as far as any user other than the owner of the
+task list is concerned, so an attempt to copy it will be rejected with a
+notFound SetError.)
+
 ## Task/query {#task-query}
 
 This is a standard "/query" method as described in {{Section 5.5 of RFC8620}},
@@ -875,6 +915,10 @@ uid: `String`
 : The uid of the task is exactly the given string.
 {: newline="true"}
 
+Note that "after" and "before" are deliberately asymmetric: together they
+match tasks whose start-to-due span overlaps the window, which for a task with
+only one of the two is the single date-time it does have.
+
 If expandRecurrences is true, all conditions must match against the same
 instance of a recurring task for the instance to match. If expandRecurrences is
 false, all conditions must match, but they may each match any instance of the
@@ -950,9 +994,9 @@ accountId: `Id`
 blobIds: `Id[]`
 : The ids of the blobs to parse.
 
-properties: `String[]`
+properties: `String[]|null`
 : If supplied, only the properties listed in the array are returned for each
-  Task object. If omitted, defaults to all the properties.
+  Task object. If null or omitted, defaults to all the properties.
 {: newline="true"}
 
 The response object contains the following arguments:
@@ -973,9 +1017,9 @@ notParsable: `Id[]|null`
 {: newline="true"}
 
 Parsed iCalendars are to be converted into Task objects following the process
-defined in the JSCalendar: Converting from and to iCalendar
-(https://datatracker.ietf.org/doc/draft-ietf-calext-jscalendar-icalendar)
-document.
+defined in {{I-D.ietf-calext-jscalendar-icalendar}}. In particular, if the
+iCalendar file has a METHOD property, the "method" property MUST be set on each
+parsed Task object.
 
 # Alerts
 
@@ -1018,9 +1062,9 @@ for the following:
   the task is dismissed. The id of the alert MUST be the same as the id of the
   default alert in the task list. See {{acknowledging}} on acknowledging
   alerts.
-* If an alert has a "relatedTo" property where the parent is the id of one of
-  the task list default alerts, it is processed as normal and not ignored. This
-  is to support snoozing default alerts; see {{snoozing}}.
+* If an alert has a "relatedTo" property with a "snooze" relation to the id of
+  one of the task list default alerts, it is processed as normal and not
+  ignored. This is to support snoozing default alerts; see {{snoozing}}.
 
 ## Acknowledging an alert {#acknowledging}
 
@@ -1102,9 +1146,19 @@ The server should create a TaskNotification whenever a task is added, updated
 or destroyed by someone else, for example when a task is edited directly by
 another user on a shared task list.
 
-The TaskNotification does not have any per-user data. A single instance may
-therefore be maintained on the server for all users with whom the task list is
-shared. The server need only keep track of which users have yet to destroy the
+A TaskNotification exposes the full details of the task that changed, so MUST
+only be created for users that are allowed to see those details. If the
+"privacy" property of the task is "private" or "secret", either before or after
+the change, the server MUST NOT create a notification for any user other than
+the Principal that owns the task list, as other users do not have access to the
+full details of such a task (see {{taskget}}). The Principal that owns the task
+list still receives notifications for these tasks as normal.
+
+Apart from this, the TaskNotification does not have any per-user data. A single
+instance may therefore be maintained on the server for all users with whom the
+task list is shared. A notification that would not be created for a particular
+user, as described above, MUST be treated as not existing for that user. The
+server need only keep track of which users have yet to destroy the
 notification.
 
 The server MAY limit the maximum number of notifications it will store for a
@@ -1116,7 +1170,7 @@ after a certain period of time or that it deems are no longer relevant.
 
 A *TaskNotification* object has the following properties:
 
-id: `Id`
+id: `Id` (immutable; server-set)
 : The id of the TaskNotification.
 
 created: `UTCDateTime`
@@ -1468,7 +1522,7 @@ IANA will register "TaskList" in the "JMAP Data Types" registry as follows:
 Type Name:
 : TaskList
 
-Can reference blobs:
+Can Reference Blobs:
 : no
 
 Can Use for State Change:
@@ -1477,7 +1531,7 @@ Can Use for State Change:
 Capability:
 : urn:ietf:params:jmap:tasks
 
-Specification document:
+Reference:
 : this document
 
 ## JMAP Data Type Registration for "Task"
@@ -1487,7 +1541,7 @@ IANA will register "Task" in the "JMAP Data Types" registry as follows:
 Type Name:
 : Task
 
-Can reference blobs:
+Can Reference Blobs:
 : yes
 
 Can Use for State Change:
@@ -1496,7 +1550,7 @@ Can Use for State Change:
 Capability:
 : urn:ietf:params:jmap:tasks
 
-Specification document:
+Reference:
 : this document
 
 ## JMAP Data Type Registration for "TaskNotification"
@@ -1507,7 +1561,7 @@ follows:
 Type Name:
 : TaskNotification
 
-Can reference blobs:
+Can Reference Blobs:
 : no
 
 Can Use for State Change:
@@ -1516,7 +1570,7 @@ Can Use for State Change:
 Capability:
 : urn:ietf:params:jmap:tasks
 
-Specification document:
+Reference:
 : this document
 
 ## JMAP Error Codes Registry
@@ -1541,53 +1595,88 @@ Description:
   "onDestroyRemoveTasks" argument was false.
 
 The "expandDurationTooLarge" and "cannotCalculateOccurrences" error codes
-defined in {{Section 10.7 of I-D.ietf-jmap-calendars}} are also used by this
+defined in {{Section 10.8 of I-D.ietf-jmap-calendars}} are also used by this
 document, for "Task/query". No new registration is required.
 
-## JSCalendar Property Registrations
+## JSCalendar Properties Registry
 
-IANA will register the following additional properties in the "JSCalendar
-Properties" registry.
+The "Is Per-User" field used below is defined by {{Section 7.4 of
+I-D.ietf-calext-jscalendarbis}}.
+
+### Added Properties
+
+IANA will add the following entries to the "JSCalendar Properties" registry.
+
+#### taskListIds
 
 Property Name:
 : taskListIds
 
 Property Type:
-: Not applicable
+: not applicable
 
 Property Context:
 : Task
 
-Intended Use:
-: Reserved
+Reference or Description:
+: This document, {{tasks}}
 
-Is per-user:
-: no
+Intended Usage:
+: reserved
+
+Since Version:
+: 2.0
+
+Change Controller:
+: IETF
+
+Is Per-User:
+: No
+
+#### baseTaskId
 
 Property Name:
 : baseTaskId
 
 Property Type:
-: Not applicable
+: not applicable
 
 Property Context:
 : Task
 
-Intended Use:
-: Reserved
+Reference or Description:
+: This document, {{tasks}}
 
-Is per-user:
-: no
+Intended Usage:
+: reserved
 
-## Update to the "useDefaultAlerts" Registration
+Since Version:
+: 2.0
 
-The "useDefaultAlerts" property is registered by
-{{Section 10.9.8 of I-D.ietf-jmap-calendars}} with a Property Context of
-"Event". IANA will update that registration to give it a Property Context of
-"Event, Task".
+Change Controller:
+: IETF
 
-The "id" property is already registered with a Property Context of "Event,
-Task"; no update is required for its use here.
+Is Per-User:
+: No
+
+### Updated Properties
+
+The following property is already registered in the "JSCalendar Properties"
+registry by {{I-D.ietf-calext-jscalendarbis}}. IANA will update the entry as
+follows. Only the Property Name and the changed fields are listed; unchanged
+fields are omitted.
+
+#### useDefaultAlerts
+
+Property Name:
+: useDefaultAlerts
+
+Property Context:
+: Event, Task
+
+The "id" property is registered with a Property Context of "Event, Task" by
+{{Section 10.9.1.1 of I-D.ietf-jmap-calendars}}; no update is required for its
+use here.
 
 --- back
 
