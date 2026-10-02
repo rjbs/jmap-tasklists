@@ -852,6 +852,11 @@ timeZone: `TimeZoneId`
 : The time zone used to resolve tasks that have no time zone of their own, and
   the "before" and "after" filter conditions, into absolute time (default:
   "Etc/UTC").
+
+  Clients SHOULD set this to the user's current time zone. A task with no time
+  zone of its own falls at a different moment for each user, and only the
+  client knows which; the default of "Etc/UTC" places such tasks correctly only
+  for a user who is themself in UTC.
 {: newline="true"}
 
 The *start instant* of a task is its "start" property resolved to absolute time
@@ -860,6 +865,12 @@ property, using the time zone given as the "timeZone" argument. The *due
 instant* of a task is defined in the same way from its "due" property. A task
 has a start instant only if it has a "start" property, and a due instant only
 if it has a "due" property.
+
+Note that the fallback here is the "timeZone" argument, not the "timeZone"
+property of the TaskList the task is in ({{tasklists}}). The TaskList property
+applies where the server must resolve a task with no client to ask, such as
+when firing an alert; a query is made by a client that knows where the user
+currently is, so the client supplies the zone.
 
 If expandRecurrences is true, a separate id will be returned for each instance
 of a recurring task that matches the query. This synthetic id is opaque to the
