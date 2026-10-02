@@ -27,8 +27,6 @@ author:
     email: rjbs@semiotic.systems
 
 normative:
-  RFC2119:
-  RFC8174:
   RFC8620:
   RFC9670:
   RFC9562:
@@ -654,10 +652,10 @@ The "method" property MUST NOT be set. Any attempt to do so is rejected with a
 standard invalidProperties SetError.
 
 As per {{Section 4.2 of I-D.ietf-calext-jscalendarbis}}, if the "timeZone"
-property is not set, or the "showWithoutTime" property is true, then at least
-one of the "due" and "start" properties MUST be set. A create or update that
-would leave the task in violation of this MUST be rejected with an
-invalidProperties SetError.
+property is set, or the "showWithoutTime" property is true, then at least one
+of the "due" and "start" properties MUST be set. A create or update that would
+leave the task in violation of this MUST be rejected with an invalidProperties
+SetError.
 
 ### Patching
 
