@@ -849,8 +849,17 @@ expandRecurrences: `Boolean` (default: false)
   an infinite number of results.
 
 timeZone: `TimeZoneId`
-: The time zone for before/after filter conditions (default: "Etc/UTC")
+: The time zone used to resolve tasks that have no time zone of their own, and
+  the "before" and "after" filter conditions, into absolute time (default:
+  "Etc/UTC").
 {: newline="true"}
+
+The *start instant* of a task is its "start" property resolved to absolute time
+using the task's "timeZone" property, or, if the task has no "timeZone"
+property, using the time zone given as the "timeZone" argument. The *due
+instant* of a task is defined in the same way from its "due" property. A task
+has a start instant only if it has a "start" property, and a due instant only
+if it has a "due" property.
 
 If expandRecurrences is true, a separate id will be returned for each instance
 of a recurring task that matches the query. This synthetic id is opaque to the
@@ -881,16 +890,16 @@ inTaskList: `Id`
 : A TaskList id. A task must be in this task list to match the condition.
 
 after: `LocalDateTime`
-: The task's due date-time, or if it has no due date-time its start date-time,
-  in the time zone given as the "timeZone" argument, must be on or after this
-  date to match the condition. A task with neither a due nor a start date-time
-  never matches this condition.
+: The task's due instant, or if it has none its start instant, must be on or
+  after this date-time (resolved using the "timeZone" argument) to match the
+  condition. A task with neither a due nor a start instant never matches this
+  condition.
 
 before: `LocalDateTime`
-: The task's start date-time, or if it has no start date-time its due
-  date-time, in the time zone given as the "timeZone" argument, must be before
-  this date to match the condition. A task with neither a due nor a start
-  date-time never matches this condition.
+: The task's start instant, or if it has none its due instant, must be before
+  this date-time (resolved using the "timeZone" argument) to match the
+  condition. A task with neither a due nor a start instant never matches this
+  condition.
 
 progress: `String[]`
 : The progress of the task, as given by its "progress" property or as computed
@@ -961,12 +970,33 @@ The following properties SHOULD be supported for sorting:
 * created
 * updated
 
-The "due", "start", "priority", "progress", and "percentComplete" properties
-are all optional on a Task. When sorting on a property, tasks for which the
-property is not set MUST sort after all tasks for which it is set, whether the
-sort is ascending or descending. For the "progress" property, the default
-progress computed per {{Section 4.2.5 of I-D.ietf-calext-jscalendarbis}} is
-used, so it is always set.
+Sorting on "due" or "start" compares the due instants or start instants of the
+tasks, as defined in {{task-query}}, rather than their local date-time values.
+Two tasks due at the same moment therefore sort together even if they are in
+different time zones, and a task with no time zone of its own is resolved using
+the "timeZone" argument.
+
+Sorting on "progress" uses the task's progress as given by its "progress"
+property, or as computed by the default rules in {{Section 4.2.5 of
+I-D.ietf-calext-jscalendarbis}} if that property is omitted. Ascending order is
+the order in which the values are listed here:
+
+1. needs-action
+2. in-process
+3. completed
+4. failed
+5. cancelled
+
+This puts the values a user is most likely to want to act on first. Any other
+value, whether registered in the IANA "JSCalendar Enum Values" registry or
+vendor-specific, sorts after all of the above; the relative order of two such
+values is not defined.
+
+The "due", "start", "priority", and "percentComplete" properties are all
+optional on a Task. When sorting on one of them, tasks for which the property
+is not set MUST sort after all tasks for which it is set, whether the sort is
+ascending or descending. The "progress" property is always set, by the default
+above, so this does not apply to it.
 
 ## Task/queryChanges
 
