@@ -850,20 +850,13 @@ expandRecurrences: `Boolean` (default: false)
 
 timeZone: `TimeZoneId` (default: "Etc/UTC")
 : The time zone used to resolve tasks that have no time zone of their own, and
-  the "before" and "after" filter conditions, into absolute time.
+  the "before" and "after" filter conditions, into absolute time. It applies
+  to sorting as well as to filtering.
 
-  This argument MUST be given if the "sort" argument sorts on "due" or
-  "start"; such a query without it MUST be rejected with an invalidArguments
-  error (see {{Section 3.6.2 of RFC8620}}). There is no default in that case
-  because there is nothing to derive one from: a sort has no client-supplied
-  date-time to anchor it, so a guessed zone silently misplaces every task that
-  has no time zone of its own. A filter does have such an anchor, since
-  omitting the argument reads the client's own "before" and "after" values as
-  UTC and places tasks with no time zone consistently with them.
-
-  Clients SHOULD set this to the user's current time zone whenever they give
-  it. A task with no time zone of its own falls at a different moment for each
-  user, and only the client knows which.
+  Clients SHOULD set this to the user's current time zone. A task with no time
+  zone of its own falls at a different moment for each user, and only the
+  client knows which; the default of "Etc/UTC" places such a task correctly
+  only for a user who is themself in UTC.
 {: newline="true"}
 
 The *start instant* of a task is its "start" property resolved to absolute time
@@ -992,7 +985,7 @@ Sorting on "due" or "start" compares the due instants or start instants of the
 tasks, as defined in {{task-query}}, rather than their local date-time values.
 Two tasks due at the same moment therefore sort together even if they are in
 different time zones. A task with no time zone of its own is resolved using the
-"timeZone" argument, which is why that argument is required for these sorts.
+"timeZone" argument, which defaults to "Etc/UTC".
 
 Sorting on "progress" uses the task's progress as given by its "progress"
 property, or as computed by the default rules in {{Section 4.2.5 of
@@ -1320,9 +1313,9 @@ shown.
 A user has authenticated and the client has fetched the JMAP Session object. It
 finds a single Account with the urn:ietf:params:jmap:tasks capability, with id
 "a0x9", and wants to display all the task lists and every task that is not yet
-finished, soonest first. The sort is on "due", so the request must say which
-time zone to place tasks that have none of their own; the client sends the
-user's current one. It might make the following request:
+finished, soonest first. The sort is on "due", so the client sends the user's
+current time zone, which is where any task with no time zone of its own will
+be placed. It might make the following request:
 
 ~~~
 [
