@@ -1064,7 +1064,7 @@ defined in {{I-D.ietf-calext-jscalendar-icalendar}}. In particular, if the
 iCalendar file has a METHOD property, the "method" property MUST be set on each
 parsed Task object.
 
-# Alerts
+# Alerts {#alerts}
 
 Alerts may be specified on tasks as described in {{Section 3.5 of
 I-D.ietf-calext-jscalendarbis}}.
@@ -1072,11 +1072,14 @@ I-D.ietf-calext-jscalendarbis}}.
 Alerts MUST only be triggered for tasks in task lists where the user is
 subscribed.
 
-An OffsetTrigger with a "relativeTo" value of "start" is relative to the task's
-"start" property; one with a value of "end" is relative to the task's "due"
-property. If the task does not have the referenced property, the alert MUST NOT
-trigger. (A task with neither a "start" nor a "due" property can therefore only
-be alerted on by an AbsoluteTrigger.)
+An OffsetTrigger with a "relativeTo" value of "start" (the default) is relative
+to the task's "start" property; one with a value of "end" is relative to the
+task's "due" property. Per {{Section 3.5.1 of I-D.ietf-calext-jscalendarbis}},
+neither value may be used on a task that lacks the corresponding property. A
+"Task/set" create or update that would leave a task, or any of its recurrence
+overrides, with such an alert MUST be rejected with an invalidProperties
+SetError. (A task with neither a "start" nor a "due" property can therefore
+only have alerts with an AbsoluteTrigger.)
 
 Servers SHOULD NOT trigger an alert for a task whose progress is "completed" or
 "cancelled".
@@ -1097,6 +1100,11 @@ If the "useDefaultAlerts" property of a task is true, the alerts are taken from
 the "defaultAlertsWithTime" or "defaultAlertsWithoutTime" property of all
 TaskLists (see {{tasklists}}) the task is in, rather than the "alerts" property
 of the Task.
+
+A default alert is not part of the task, so the restriction on "relativeTo" in
+{{alerts}} cannot be enforced against it when the task is changed. Instead, a
+default alert with an OffsetTrigger that is relative to a property the task
+does not have does not apply to that task, and MUST NOT trigger for it.
 
 When using default alerts, the "alerts" property of the task is ignored except
 for the following:
