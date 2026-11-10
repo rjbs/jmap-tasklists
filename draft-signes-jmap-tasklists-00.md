@@ -660,6 +660,8 @@ instance in the same "/set" request.
 If omitted on create, the server MUST set the following properties:
 
 * @type MUST be set to "Task"
+* version MUST be set to the JSCalendar version the task conforms to, e.g.,
+  "2.0" (see {{Section 3.1.2 of I-D.ietf-calext-jscalendarbis}}).
 * uid MUST be set to a new globally unique identifier, such as a UUID
   {{RFC9562}}.
 * created MUST be set to the current date-time.
@@ -1440,6 +1442,7 @@ The server assigns the id, uid, created and updated properties:
         "id": "T-2f0d0b39-a2a1-4a2f-9a7f-2f2f9d9e6c11",
         "uid": "1a2d8b23-4f52-4d1d-9c31-6a1e2c0b7f44",
         "@type": "Task",
+        "version": "2.0",
         "created": "2026-08-05T04:11:00Z",
         "updated": "2026-08-05T04:11:00Z"
       }
