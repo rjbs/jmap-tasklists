@@ -1277,7 +1277,8 @@ taskPatch: `PatchObject` (updated only)
 
 The "task" and "taskPatch" properties MUST NOT include per-user data (see
 {{per-user}}), including any per-user properties set within recurrence
-overrides.
+overrides. If a change affects only per-user data, so that the "taskPatch"
+would be empty, the server MUST NOT create a notification for it.
 
 If the change only affects a single instance of a recurring task, the server MAY
 set the task and taskPatch properties for just that instance; the taskId MUST
