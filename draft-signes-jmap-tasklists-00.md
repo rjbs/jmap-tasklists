@@ -566,15 +566,24 @@ ids of tasks as actually stored on the server.
 ## Task/get {#taskget}
 
 This is a standard "/get" method as described in {{Section 5.1 of RFC8620}},
-with two extra arguments:
+with three extra arguments:
 
 recurrenceOverridesBefore: `UTCDateTime|null`
 : If given, only recurrence overrides with a recurrence id before this date
-  (when translated into UTC) will be returned.
+  (when translated into UTC) will be returned. For a floating task (one with
+  a null "timeZone" property), the recurrence id is translated into UTC using
+  the time zone given as the "timeZone" argument.
 
 recurrenceOverridesAfter: `UTCDateTime|null`
 : If given, only recurrence overrides with a recurrence id on or after this
-  date (when translated into UTC) will be returned.
+  date (when translated into UTC) will be returned. For a floating task, the
+  recurrence id is translated into UTC using the time zone given as the
+  "timeZone" argument.
+
+timeZone: `TimeZoneId` (default: "Etc/UTC")
+: The time zone to use when translating the recurrence ids of floating tasks
+  into UTC for the "recurrenceOverridesBefore" and "recurrenceOverridesAfter"
+  arguments. This argument has no effect if neither of those is given.
 {: newline="true"}
 
 A Task object is a JSCalendar Task object so may have arbitrary properties. If
