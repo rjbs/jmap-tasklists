@@ -496,6 +496,9 @@ useDefaultAlerts: `Boolean` (optional, default: false)
   property (see {{default-alerts}}).
 {: newline="true"}
 
+The "taskListIds" property MUST NOT be altered in the "recurrenceOverrides"
+property of a Task; it may only be set on the base object.
+
 Task objects stored on the server MUST NOT have a "method" property, as this
 is only used when representing iTIP {{RFC5546}} scheduling messages, not tasks
 in a data store. This restriction does not apply to Task objects returned by
