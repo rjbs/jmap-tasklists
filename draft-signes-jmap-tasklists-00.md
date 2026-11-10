@@ -970,10 +970,10 @@ allow for flexibility in indexing implementation, subject to the following:
 
 The following properties MUST be supported for sorting:
 
+* id
+* uid
 * due
 * start
-* uid
-* recurrenceId
 
 The following properties SHOULD be supported for sorting:
 
