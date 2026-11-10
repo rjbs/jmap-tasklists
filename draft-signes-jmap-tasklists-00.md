@@ -597,7 +597,9 @@ task the server MUST only return properties that are:
 * permitted to be shared for a "private" object by {{Section 3.4.3 of
   I-D.ietf-calext-jscalendarbis}}; or
 * additional Task properties not derived from the JSCalendar Task data (i.e.
-  id, baseTaskId, taskListIds).
+  id, baseTaskId, taskListIds); or
+* per-user properties (see {{per-user}}), as these values do not come from the
+  owner's data.
 
 If "privacy" is set to "secret", the server MUST behave as though the task does
 not exist for all users other than the Principal that owns the task list.
@@ -687,8 +689,8 @@ SetError.
 The JMAP "/set" method allows you to update an object by sending a patch,
 rather than having to supply the whole object. When doing so, care must be
 taken if updating a property of a Task where the value is itself a PatchObject,
-e.g. inside "localizations" or "recurrenceOverrides". In particular, you cannot
-add a property with value null to the Task using a direct patch on that
+such as the values of the "recurrenceOverrides" property. In particular, you
+cannot add a property with value null to the Task using a direct patch on that
 property, as this is interpreted instead as a patch to remove the property.
 
 This is more easily understood with an example. Some of the requests below are
@@ -922,7 +924,7 @@ progress: `String[]`
 
 text: `String`
 : Looks for the text in the "title", "description", "locations" (matching
-  name/description), "participants" (matching name/email) and any other textual
+  name), "participants" (matching name/email) and any other textual
   properties of the task or any recurrence of the task.
 
 title: `String`
@@ -1128,7 +1130,7 @@ before the "acknowledged" date-time) and alerts that have been removed from the
 task.
 
 Setting the "acknowledged" property MUST NOT create a new recurrence override.
-For a recurring task, the "acknowledged" property of the parent object MUST be
+For a recurring task, the "acknowledged" property of the base object MUST be
 updated, unless the alert is already overridden in the "recurrenceOverrides"
 property.
 
