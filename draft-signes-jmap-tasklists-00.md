@@ -491,6 +491,23 @@ taskListIds: `Id[Boolean]`
   as an object, with each key being a TaskList id. The value for each key in
   the object MUST be true.
 
+sortOrder: `UnsignedInt` (default: 0)
+: Defines the manual sort order of tasks when presented in the client's UI, so
+  it is consistent between devices. The number MUST be an integer in the range
+  0 <= sortOrder < 2^31.
+
+  A task with a lower order is to be displayed before a task with a higher
+  order when the user has chosen to view tasks in their manual order. The
+  relative order of tasks with equal order is not defined.
+
+  A task has a single "sortOrder" value, no matter how many task lists it
+  belongs to. Clients usually present manual ordering within a single task
+  list, but changing "sortOrder" there also changes the task's position
+  relative to tasks in every other list, as seen in any view that combines
+  lists. Clients may wish to consider the effect on that total order when
+  renumbering tasks, for example by choosing values that keep the task's
+  position relative to tasks in other lists where possible.
+
 useDefaultAlerts: `Boolean` (optional, default: false)
 : If true, use the user's default alerts and ignore the value of the alerts
   property (see {{default-alerts}}).
@@ -988,6 +1005,7 @@ The following properties MUST be supported for sorting:
 * uid
 * due
 * start
+* sortOrder
 
 The following properties SHOULD be supported for sorting:
 
@@ -1685,6 +1703,32 @@ IANA will add the following entries to the "JSCalendar Properties" registry.
 
 Property Name:
 : taskListIds
+
+Property Type:
+: not applicable
+
+Property Context:
+: Task
+
+Reference or Description:
+: This document, {{tasks}}
+
+Intended Usage:
+: reserved
+
+Since Version:
+: 2.0
+
+Change Controller:
+: IETF
+
+Is Per-User:
+: No
+
+#### sortOrder
+
+Property Name:
+: sortOrder
 
 Property Type:
 : not applicable
