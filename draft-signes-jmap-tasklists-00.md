@@ -888,8 +888,9 @@ with two extra arguments:
 expandRecurrences: `Boolean` (default: false)
 : If true, the server will expand any recurring task. If true, the filter MUST
   be just a FilterCondition (not a FilterOperator) and MUST include both a
-  "before" and "after" property. This ensures the server is not asked to return
-  an infinite number of results.
+  "before" and "after" property; otherwise, the server MUST reject the call
+  with an invalidArguments error. This ensures the server is not asked to
+  return an infinite number of results.
 
 timeZone: `TimeZoneId` (default: "Etc/UTC")
 : The time zone used to resolve tasks that have no time zone of their own, and
