@@ -1210,15 +1210,19 @@ accountId: `Id`
 : The account id for the task list in which the alert triggered.
 
 taskId: `Id`
-: The Task id for the alert that triggered. Note, for a recurring task this is
-  the id of the base task, never a synthetic id for a particular instance.
+: The id of the stored Task for the alert that triggered. Note, for a recurring
+  task this is the id of the base task, never a synthetic id for a particular
+  instance. If only specific instances of the task are stored (see
+  {{uids-and-task-ids}}), this is the id of the stored instance.
 
 uid: `String`
 : The "uid" property of the Task for the alert that triggered.
 
 recurrenceId: `LocalDateTime|null`
-: The recurrenceId for the instance of the task for which this alert is being
-  triggered, or null if the task is not recurring.
+: The recurrence id of the instance of the task for which this alert is being
+  triggered. This is null if the stored Task has a null "recurrenceId" and no
+  "recurrenceRule" or "recurrenceOverrides" (i.e., it is not recurring and is
+  not a single instance of a recurring task).
 
 alertId: `String`
 : The id for the alert that triggered.
@@ -1311,7 +1315,8 @@ would be empty, the server MUST NOT create a notification for it.
 
 If the change only affects a single instance of a recurring task, the server MAY
 set the task and taskPatch properties for just that instance; the taskId MUST
-still be for the base task.
+still be the id of the stored Task (the base task, unless only specific
+instances are stored), never a synthetic id.
 
 ## TaskNotification/get
 
