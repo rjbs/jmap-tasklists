@@ -68,7 +68,7 @@ of changes made by others in a multi-user environment.
 
 # Introduction
 
-JMAP ({{RFC8620}} — JSON Meta Application Protocol) is a generic protocol for
+JMAP ({{RFC8620}} - JSON Meta Application Protocol) is a generic protocol for
 synchronizing data, such as mail, calendars or contacts, between a client and a
 server. It is optimized for mobile and web environments, and aims to provide a
 consistent interface to different data types.
