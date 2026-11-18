@@ -277,9 +277,10 @@ sortOrder: `UnsignedInt` (default: 0)
 
 isSubscribed: `Boolean`
 : True if the user has indicated they wish to see this TaskList in their
-  client. This SHOULD default to false for TaskLists in shared accounts the
-  user has access to and true for any new TaskLists created by the user
-  themself.
+  client. This SHOULD default to true for TaskLists in the user's own account
+  (however they were created) and for any new TaskLists created by the user
+  themself, and false for other TaskLists in shared accounts the user has
+  access to.
 
   If false, the task list SHOULD only be displayed when the user explicitly
   requests it or to offer it for the user to subscribe to. For example, a
