@@ -185,11 +185,15 @@ maxTaskListsPerTask: `UnsignedInt|null`
 
 minDateTime: `UTCDateTime`
 : The earliest date-time value the server is willing to accept for any date
-  stored in a Task.
+  stored in a Task. When comparing against this limit, a LocalDateTime value
+  with no associated time zone (i.e., in a floating task) is interpreted as
+  though it were in UTC.
 
 maxDateTime: `UTCDateTime`
 : The latest date-time value the server is willing to accept for any date
-  stored in a Task.
+  stored in a Task. As with minDateTime, a LocalDateTime value with no
+  associated time zone is interpreted as though it were in UTC when comparing
+  against this limit.
 
 maxExpandedQueryDuration: `Duration`
 : The maximum duration the user may query over when asking the server to expand
@@ -706,6 +710,11 @@ also be overridden to the server's current time.
 
 The "method" property MUST NOT be set. Any attempt to do so is rejected with a
 standard invalidProperties SetError.
+
+If the task would be assigned to more TaskLists than the "maxTaskListsPerTask"
+limit, or has any date earlier than the "minDateTime" or later than the
+"maxDateTime" value in the account capabilities (see {{capability-tasks}}),
+the server MUST reject the create or update with an invalidProperties SetError.
 
 As per {{Section 4.2 of I-D.ietf-calext-jscalendarbis}}, if the "timeZone"
 property is set, or the "showWithoutTime" property is true, then at least one
