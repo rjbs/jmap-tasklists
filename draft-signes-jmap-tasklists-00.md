@@ -32,7 +32,6 @@ normative:
   RFC9562:
   RFC2397:
   RFC5545:
-  RFC8792:
   I-D.ietf-calext-jscalendarbis:
   I-D.ietf-calext-jscalendar-icalendar:
   I-D.ietf-jmap-calendars:
@@ -734,7 +733,7 @@ property, as this is interpreted instead as a patch to remove the property.
 
 This is more easily understood with an example. Some of the requests below are
 too wide to print, and use the single backslash line-wrapping convention of
-{{RFC8792}}. Suppose you have a Task object like so:
+{{?RFC8792}}. Suppose you have a Task object like so:
 
 ~~~
 {
