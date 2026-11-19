@@ -1,4 +1,4 @@
-DRAFT  = draft-signes-jmap-tasklists-00
+DRAFT  = draft-ietf-jmap-tasks-07
 BUILD  = build/$(DRAFT)
 IMAGE  = jmap-tasklists-tools
 

@@ -1,8 +1,8 @@
 ---
 title: "JSON Meta Application Protocol (JMAP) for Task Lists"
-abbrev: "JMAP Task Lists"
+abbrev: "JMAP for Task Lists"
 category: std
-docname: draft-signes-jmap-tasklists-00
+docname: draft-ietf-jmap-tasks-07
 submissiontype: IETF
 number:
 date:
@@ -21,10 +21,12 @@ venue:
   arch: https://mailarchive.ietf.org/arch/browse/jmap/
 
 author:
- -
-    fullname: Ricardo Signes
+ -  fullname: Ricardo Signes
     organization: Fastmail
     email: rjbs@semiotic.systems
+ -  fullname: Hans-Jörg Happel
+    organization: audriga
+    email: happel@audriga.com
 
 normative:
   RFC8620:
