@@ -1,3 +1,4 @@
 /.refcache
 /build
-draft-ietf-*.txt
+/draft-*.txt
+/draft-*.xml
