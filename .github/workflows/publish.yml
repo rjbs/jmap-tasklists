@@ -13,9 +13,6 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
-env:
-  DRAFT: draft-signes-jmap-tasklists-00
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -39,7 +36,9 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build HTML
-        run: make html && sudo chmod -R a+w build
+        run: |
+          make html && sudo chmod -R a+w build
+          echo "DRAFT=$(make -s print-draft)" >> "$GITHUB_ENV"
 
       - name: Inject commit banner
         env:
